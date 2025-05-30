@@ -1,0 +1,16 @@
+models:
+  # Primary reasoning models (using available OpenAI models for demo)
+  complex_reasoning: "gpt-4o"               # Complex reasoning tasks
+  simple_reasoning:  "gpt-4o-mini"          # Fast, efficient tasks  
+  high_context_fallback: "gpt-4-turbo"      # Large context processing
+
+  # Alternative for diversity (using available models)
+  alternative_llm: "gpt-4"                  # Alternative reasoning approach
+
+  # Research & retrieval
+  live_research: "sonar-pro"                # Perplexity Sonar (when available)
+  embeddings: "text-embedding-3-large"
+  reranker: "rerank-english-v3.0"           # Cohere reranker (when available)
+
+  # Quality assurance
+  # Vectara FCS is enabled via parameter, not a model string
