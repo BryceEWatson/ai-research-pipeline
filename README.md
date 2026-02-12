@@ -1,5 +1,7 @@
 # AI Research Pipeline
 
+![Python](https://img.shields.io/badge/Python-100%25-3776AB) ![OpenAI](https://img.shields.io/badge/OpenAI-o1%20%7C%20o1--mini-412991) ![ChromaDB](https://img.shields.io/badge/Chroma_DB-Vector_Store-FF6F00) ![Perplexity](https://img.shields.io/badge/Perplexity-sonar--pro-20B2AA) ![Vectara](https://img.shields.io/badge/Vectara-Fact_Checking-6C3483) ![RAG](https://img.shields.io/badge/RAG-Multi--Agent-orange)
+
 A multi-agent retrieval-augmented research assistant that combines cloud LLM reasoning, live research APIs, and persistent vector memory with intelligent model selection and quality assurance.
 
 ## Architecture
