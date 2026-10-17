@@ -6,10 +6,11 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
 from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
-from langchain.schema import HumanMessage
+from langchain_core.prompts import PromptTemplate
+from langchain_core.messages import HumanMessage
 
 from core.config import settings, model_selector
+from core.performance_monitor import record_operation
 from agents.sourcing_agent import SourcingResult, SourcedDocument
 import time
 
@@ -144,13 +145,14 @@ Focus on what's missing or could be enhanced."""
         Returns:
             ResearchResult with synthesized answer and metadata
         """
+        if not sourcing_result.documents:
+            return self._create_no_sources_result(query)
+        
         start_time = time.time()
         success = False
+        self.current_model = "unknown"
         
         try:
-            if not sourcing_result.documents:
-                return self._create_no_sources_result(query)
-            
             # Determine task complexity based on source count and conflicts
             complexity = self._assess_synthesis_complexity(sourcing_result)
             
@@ -220,6 +222,7 @@ Focus on what's missing or could be enhanced."""
             for fallback_model in fallback_models:
                 try:
                     logger.info(f"Trying fallback model: {fallback_model}")
+                    self.current_model = fallback_model
                     fallback_llm = self._create_llm_instance(fallback_model)
                     
                     synthesis_response = fallback_llm.invoke([HumanMessage(content=synthesis_prompt)])
@@ -261,6 +264,7 @@ Focus on what's missing or could be enhanced."""
             execution_time = time.time() - start_time
             model_used = getattr(self, 'current_model', 'unknown')
             model_selector.record_performance(model_used, "research", execution_time, success)
+            record_operation("research_agent", "synthesize_research", model_used, execution_time, success)
     
     def _format_sources_for_synthesis(self, documents: List[SourcedDocument]) -> str:
         """Format sources for LLM consumption."""

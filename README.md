@@ -1,137 +1,99 @@
 # AI Research Pipeline
 
-![Python](https://img.shields.io/badge/Python-100%25-3776AB) ![OpenAI](https://img.shields.io/badge/OpenAI-o1%20%7C%20o1--mini-412991) ![ChromaDB](https://img.shields.io/badge/Chroma_DB-Vector_Store-FF6F00) ![Perplexity](https://img.shields.io/badge/Perplexity-sonar--pro-20B2AA) ![Vectara](https://img.shields.io/badge/Vectara-Fact_Checking-6C3483) ![RAG](https://img.shields.io/badge/RAG-Multi--Agent-orange)
+[![CI](https://github.com/BryceEWatson/ai-research-pipeline/actions/workflows/ci.yml/badge.svg)](https://github.com/BryceEWatson/ai-research-pipeline/actions/workflows/ci.yml)
 
-A multi-agent retrieval-augmented research assistant that combines cloud LLM reasoning, live research APIs, and persistent vector memory with intelligent model selection and quality assurance.
+A command-line research assistant I built in Python. You ask it a question and three LLM agents split it into sub-questions, gather sources from a local Chroma vector store (and, with a Perplexity key, the live web), then write a cited answer that points out where the sources disagree.
 
-## Architecture
+It's a personal prototype I built in May 2025, not a maintained product. If you're reviewing the code, start with the agent hand-offs in `agents/`, the model routing in `core/config.py` and the answer scoring in `core/quality_scoring.py`.
 
-The system uses a **three-agent workflow** with **smart model selection**:
-- **Seed Agent**: Query decomposition & search planning (uses o1-mini for speed)
-- **Sourcing Agent**: Calls research APIs, filters and evaluates content (uses sonar-pro for live research)
-- **Research Agent**: Retrieval, synthesis, and conflict detection (uses o1 for complex reasoning)
+## How it works
 
-### Model Selection Strategy
-- **Context-aware routing**: Different models for different complexity levels
-- **Fallback chains**: Resilient error handling with model alternatives  
-- **Performance monitoring**: Real-time tracking of model usage and success rates
-- **Cost optimization**: Task-appropriate model selection reduces unnecessary compute
+1. **Seed agent** (`agents/seed_agent.py`) scores the question's complexity with a rough heuristic (over 10 words, plus substring matches on words like "and", "or", "compare", "latest", "new") to pick a model, then asks that model to break the question into two to five sub-queries, each tagged to search the local store, the web or both.
+2. **Sourcing agent** (`agents/sourcing_agent.py`) runs each sub-query against the local knowledge base and, when `PERPLEXITY_API_KEY` is set, against Perplexity's Sonar API.
+3. **Research agent** (`agents/research_agent.py`) picks a model from the number and mix of sources, writes the answer with citations like `[Local-1]` and `[Sonar-1]`, asks the model to list conflicts between sources, and adds a self-critique and a confidence score.
 
-## Quick Start
+If the agent path throws an error, `core/rag_pipeline.py` falls back to a single retrieve-then-answer call.
 
-1. **Install Dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Model routing
 
-2. **Configure Environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys (OpenAI required, Perplexity/Vectara optional)
-   ```
+`model_config.yaml` maps task types to models, and `ModelSelector` in `core/config.py` picks one by task and a 1 to 5 complexity score. The config in this repo uses:
 
-3. **Configure Models** (Optional)
-   ```bash
-   # Default configuration in model_config.yaml
-   # Customize models for different tasks and complexity levels
-   ```
+| Role | Model |
+| --- | --- |
+| Simple reasoning (planning, low-complexity answers) | `gpt-4o-mini` |
+| Complex reasoning (complexity 4 and up) | `gpt-4o` |
+| Alternative model (answers at complexity 3) | `gpt-4` |
+| Large-context fallback | `gpt-4-turbo` |
+| Live research | `sonar-pro` |
 
-4. **Run CLI**
-   ```bash
-   # Ask a research question
-   python app/cli.py ask "Your research question here"
-   
-   # View model configuration
-   python app/cli.py models
-   
-   # Monitor performance
-   python app/cli.py performance
-   ```
+When a model call fails, the seed and research agents retry down a fallback chain (for example `gpt-4o` falls back to `gpt-4`, then `gpt-4-turbo`). The reranker entry isn't wired up: only the `models` command displays it. The large-context model is only picked up front when a caller passes a context size, which today only the `select-model` command does, so in normal runs it's reached only as a retry. Every chat model goes through OpenAI's client, so putting a non-OpenAI model in `alternative_llm` won't work without code changes.
 
-## Project Structure
+### Answer scoring
 
-```
-├── agents/           # Agent implementations
-├── prompts/          # Agent prompt templates
-├── core/            # Core orchestration logic
-├── app/             # CLI and web interfaces
-├── eval/            # Evaluation harness
-├── tests/           # Test suite
-├── data/            # Local data storage
-└── docs/            # Documentation
-```
+The research agent's confidence score is a formula, not the model's own rating: a base of 0.5 plus points for source count, the sources' `eval_score` (a number set when a document is added, or a constant for Perplexity results, then nudged by source type and length), and answer length, minus a penalty per detected conflict. `core/quality_scoring.py` then averages that with citation counts, the share of sources the answer cites and how many of the question's words it covers. With `VECTARA_API_KEY` set it adds Vectara's factual consistency score as one more factor, so scores with and without Vectara aren't directly comparable. These are heuristics, not an evaluation: I haven't measured how well they track answer quality.
 
-## Features
+`core/performance_monitor.py` logs each seed and research agent call (model, latency, success) to `performance_metrics.jsonl`, and `python app/cli.py performance` summarizes it.
 
-### Core Capabilities
-- **Multi-Agent Research**: Seed → Sourcing → Research agent workflow
-- **Local Vector Storage**: Chroma DB for persistent knowledge base
-- **Live Research Integration**: Perplexity Sonar for real-time web research  
-- **Smart Citation System**: Mixed local/live source citations with conflict detection
+## Quick start
 
-### Model Selection & Performance
-- **Intelligent Model Routing**: o1-mini for planning, o1 for synthesis, sonar-pro for research
-- **Context-Aware Fallbacks**: Automatic high-context model switching (>100k tokens)
-- **Performance Monitoring**: Real-time metrics collection and model comparison
-- **Cost Optimization**: Task-appropriate model selection with fallback chains
+You need Python 3.10 or newer and an OpenAI API key. CI tests on 3.10 and 3.12.
 
-### Quality Assurance
-- **Vectara FCS Integration**: Factual consistency scoring for response validation
-- **Multi-Factor Confidence**: Combines model confidence, citation quality, and source utilization
-- **Comprehensive Assessment**: Citation analysis, readability scoring, and query coverage
-
-### CLI Commands
 ```bash
-# Research and knowledge management
-python app/cli.py ask "question" [--verbose]     # Ask research questions
-python app/cli.py add "text" [--title --url]     # Add documents
-python app/cli.py stats                          # Knowledge base statistics
-python app/cli.py report [--detailed --export]   # Comprehensive reports
-
-# Model management and monitoring  
-python app/cli.py models                         # View model configuration
-python app/cli.py performance [--export]        # Performance metrics
-python app/cli.py select-model TASK             # Test model selection
+git clone https://github.com/BryceEWatson/ai-research-pipeline.git
+cd ai-research-pipeline
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env             # then put your OpenAI key in .env
+python scripts/setup_sample_data.py
+python app/cli.py ask "What is retrieval-augmented generation?"
 ```
 
-## Development Phases
+`setup_sample_data.py` embeds four sample documents, which spends a little OpenAI credit. The Perplexity, Vectara and LangSmith keys are optional: leave them blank and those features stay off. Settings read the LangSmith key, but nothing uses it yet.
 
-- [x] **Phase 1**: CLI MVP (Basic RAG)
-- [x] **Phase 2**: Multi-Agent Orchestration  
-- [x] **Phase 3**: Quality & Evaluation with Model Selection
-- [ ] **Phase 4**: Performance Improvements
-- [ ] **Phase 5**: UI & Deployment
+### CLI commands
 
-## Configuration
-
-### Environment Variables
 ```bash
-# Required
-OPENAI_API_KEY=your_openai_api_key
-
-# Optional - Enhanced features  
-PERPLEXITY_API_KEY=your_perplexity_key     # Live research
-VECTARA_API_KEY=your_vectara_key           # Quality scoring
-LANGSMITH_API_KEY=your_langsmith_key       # Advanced monitoring
-
-# Model customization
-LLM_MODEL=gpt-4o                           # Default fallback model
-EMBEDDING_MODEL=text-embedding-3-small     # Vector embeddings
+python app/cli.py ask "question" [--verbose]       # research a question
+python app/cli.py add "text" --title "Title"       # add a document
+python app/cli.py add-file notes.txt               # add a text file
+python app/cli.py stats                            # knowledge base size
+python app/cli.py report [--detailed --export f]   # knowledge base report
+python app/cli.py reset                            # empty the knowledge base
+python app/cli.py models                           # show model routing
+python app/cli.py performance [--component c]      # call metrics
+python app/cli.py select-model research --complexity 4
 ```
 
-### Model Configuration (`model_config.yaml`)
-```yaml
-models:
-  # Primary reasoning models
-  complex_reasoning: "o1-2024-12-17"        # Synthesis and analysis
-  simple_reasoning: "o1-mini-2024-12-17"    # Planning and decomposition  
-  high_context_fallback: "gpt-4.1"          # Large context processing
-  
-  # Specialized models
-  alternative_llm: "claude-3-5-sonnet-20241022"  # Diverse perspectives
-  live_research: "sonar-pro"                      # Real-time research
-  embeddings: "text-embedding-3-large"           # Vector search
-  reranker: "rerank-english-v3.0"                # Result optimization
+## Tests
+
+```bash
+pytest                       # offline tests: no API keys, no API calls
+pytest --run-integration     # adds end-to-end tests against OpenAI
 ```
 
-See `docs/model_selection_plan.md` for detailed model selection strategy.
+The offline tests cover model routing, answer scoring, performance logging, chunking, the vector store wrapper and the CLI commands that don't call a model. They use a placeholder key and a throwaway vector store. The integration tests in `tests/test_integration.py` need a real `OPENAI_API_KEY`, load the sample documents into a throwaway vector store and spend API credit. CI runs the offline tests plus a flake8 check for syntax errors and undefined names on pull requests and pushes to master.
+
+## Project layout
+
+```
+agents/     seed, sourcing and research agents
+app/        Click CLI
+core/       settings, model routing, RAG pipeline, vector store, chunking, scoring, metrics
+data/       sample documents (the vector store is written to data/chroma_db/)
+docs/       design notes and the original phase plans
+scripts/    environment check and sample data loader
+tests/      pytest suite
+```
+
+The files in `docs/` are planning notes I wrote while building this, and some describe plans that changed. `docs/model_selection_plan.md`, for example, specifies o1 and Claude models, while the config that runs uses the GPT-4o family above.
+
+## Status
+
+Built: the three-agent flow, local and Perplexity sourcing, model routing with fallbacks, heuristic answer scoring and per-call metrics.
+
+Not built: an evaluation harness that measures answer quality against labeled questions, caching, a web UI and deployment.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

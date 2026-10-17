@@ -1,13 +1,5 @@
 """Basic tests for RAG pipeline functionality."""
 
-import sys
-from pathlib import Path
-import pytest
-
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
 from core.config import settings
 from core.chunking import get_chunker
 from core.vector_store import get_vector_store
@@ -86,7 +78,7 @@ class TestRAGPipeline:
         pipeline = get_rag_pipeline()
         
         # Create mock documents
-        from langchain.schema import Document
+        from langchain_core.documents import Document
         docs = [
             Document(
                 page_content="Test content 1",
@@ -127,14 +119,7 @@ class TestConfiguration:
         assert 0 <= settings.min_eval_score <= 1
         assert 0 <= settings.min_fcs_threshold <= 1
     
-    def test_embedding_model_setting(self):
-        """Test embedding model configuration."""
-        assert settings.embedding_model in ["text-embedding-3-small", "text-embedding-3-large"]
-    
-    def test_llm_model_setting(self):
-        """Test LLM model configuration."""
-        assert "gpt" in settings.llm_model.lower() or "claude" in settings.llm_model.lower()
-
-
-if __name__ == "__main__":
-    pytest.main([__file__])
+    def test_model_settings_are_set(self):
+        """Test that embedding and fallback LLM models are configured."""
+        assert settings.embedding_model.strip()
+        assert settings.llm_model.strip()

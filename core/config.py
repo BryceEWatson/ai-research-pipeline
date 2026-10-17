@@ -9,39 +9,39 @@ import logging
 
 from dotenv import load_dotenv
 from pydantic import Field, BaseModel
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
+
+MODEL_CONFIG_PATH = Path(__file__).resolve().parent.parent / "model_config.yaml"
 
 
 class Settings(BaseSettings):
     """Application settings with environment variable support."""
     
     # API Keys
-    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
-    perplexity_api_key: Optional[str] = Field(None, env="PERPLEXITY_API_KEY")
-    vectara_api_key: Optional[str] = Field(None, env="VECTARA_API_KEY")
-    langsmith_api_key: Optional[str] = Field(None, env="LANGSMITH_API_KEY")
+    openai_api_key: str = Field(...)
+    perplexity_api_key: Optional[str] = Field(None)
+    vectara_api_key: Optional[str] = Field(None)
+    langsmith_api_key: Optional[str] = Field(None)
     
     # Core Configuration
-    chroma_db_path: str = Field("./data/chroma_db", env="CHROMA_DB_PATH")
-    log_level: str = Field("INFO", env="LOG_LEVEL")
-    embedding_model: str = Field("text-embedding-3-small", env="EMBEDDING_MODEL")
-    llm_model: str = Field("gpt-4o", env="LLM_MODEL")
+    chroma_db_path: str = Field("./data/chroma_db")
+    log_level: str = Field("INFO")
+    embedding_model: str = Field("text-embedding-3-small")
+    llm_model: str = Field("gpt-4o")
     
     # RAG Parameters
-    chunk_size: int = Field(1500, env="CHUNK_SIZE")
-    chunk_overlap: int = Field(150, env="CHUNK_OVERLAP")  # 10% of chunk_size
-    retrieval_k: int = Field(15, env="RETRIEVAL_K")
-    min_eval_score: float = Field(0.35, env="MIN_EVAL_SCORE")
+    chunk_size: int = Field(1500)
+    chunk_overlap: int = Field(150)  # 10% of chunk_size
+    retrieval_k: int = Field(15)
+    min_eval_score: float = Field(0.35)
     
     # Evaluation Settings
-    enable_factual_consistency_score: bool = Field(True, env="ENABLE_FACTUAL_CONSISTENCY_SCORE")
-    min_fcs_threshold: float = Field(0.9, env="MIN_FCS_THRESHOLD")
+    enable_factual_consistency_score: bool = Field(True)
+    min_fcs_threshold: float = Field(0.9)
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
 
 class ModelConfig(BaseModel):
@@ -61,7 +61,7 @@ class ModelConfig(BaseModel):
     reranker: str = "rerank-english-v3.0"
     
     @classmethod
-    def load_from_yaml(cls, yaml_path: str = "model_config.yaml") -> "ModelConfig":
+    def load_from_yaml(cls, yaml_path: str = str(MODEL_CONFIG_PATH)) -> "ModelConfig":
         """Load model configuration from YAML file."""
         try:
             config_path = Path(yaml_path)

@@ -129,8 +129,9 @@ dmypy.json
 .pyre/
 
 # AI/ML specific
-# Vector databases
+# Vector databases and local stores
 data/chroma_db/
+*.db
 data/vector_store/
 data/embeddings/
 *.chroma

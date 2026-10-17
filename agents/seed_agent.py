@@ -5,10 +5,11 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
-from langchain.schema import BaseMessage, HumanMessage
+from langchain_core.prompts import PromptTemplate
+from langchain_core.messages import BaseMessage, HumanMessage
 
 from core.config import settings, model_selector
+from core.performance_monitor import record_operation
 import time
 
 logger = logging.getLogger(__name__)
@@ -83,6 +84,7 @@ Focus on creating precise, searchable sub-queries that will retrieve the most re
         """
         start_time = time.time()
         success = False
+        self.current_model = "unknown"
         
         try:
             # Analyze query complexity to select appropriate model
@@ -117,6 +119,7 @@ Focus on creating precise, searchable sub-queries that will retrieve the most re
             for fallback_model in fallback_models:
                 try:
                     logger.info(f"Trying fallback model: {fallback_model}")
+                    self.current_model = fallback_model
                     fallback_llm = self._create_llm_instance(fallback_model)
                     prompt = self.decomposition_prompt.format(query=query)
                     response = fallback_llm.invoke([HumanMessage(content=prompt)])
@@ -136,6 +139,7 @@ Focus on creating precise, searchable sub-queries that will retrieve the most re
             execution_time = time.time() - start_time
             model_used = getattr(self, 'current_model', 'unknown')
             model_selector.record_performance(model_used, "seed", execution_time, success)
+            record_operation("seed_agent", "decompose_query", model_used, execution_time, success)
     
     def _create_llm_instance(self, model_name: str) -> ChatOpenAI:
         """Create LLM instance with specified model."""

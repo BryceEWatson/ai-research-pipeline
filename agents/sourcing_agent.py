@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 from datetime import datetime
 
-from langchain.schema import Document
+from langchain_core.documents import Document
 
 from core.config import settings, model_selector
 from core.vector_store import get_vector_store
@@ -389,7 +389,7 @@ class SourcingAgent:
         Returns:
             Number of new documents added to vector store
         """
-        from langchain.schema import Document
+        from langchain_core.documents import Document
         
         # Only persist live sources (not local ones that are already in the vector store)
         live_documents = [doc for doc in documents if doc.source_type in ["sonar", "deep_research"]]
