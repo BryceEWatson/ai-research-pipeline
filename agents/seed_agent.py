@@ -84,6 +84,7 @@ Focus on creating precise, searchable sub-queries that will retrieve the most re
         """
         start_time = time.time()
         success = False
+        self.current_model = "unknown"
         
         try:
             # Analyze query complexity to select appropriate model
@@ -118,6 +119,7 @@ Focus on creating precise, searchable sub-queries that will retrieve the most re
             for fallback_model in fallback_models:
                 try:
                     logger.info(f"Trying fallback model: {fallback_model}")
+                    self.current_model = fallback_model
                     fallback_llm = self._create_llm_instance(fallback_model)
                     prompt = self.decomposition_prompt.format(query=query)
                     response = fallback_llm.invoke([HumanMessage(content=prompt)])

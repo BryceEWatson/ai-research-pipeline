@@ -145,13 +145,14 @@ Focus on what's missing or could be enhanced."""
         Returns:
             ResearchResult with synthesized answer and metadata
         """
+        if not sourcing_result.documents:
+            return self._create_no_sources_result(query)
+        
         start_time = time.time()
         success = False
+        self.current_model = "unknown"
         
         try:
-            if not sourcing_result.documents:
-                return self._create_no_sources_result(query)
-            
             # Determine task complexity based on source count and conflicts
             complexity = self._assess_synthesis_complexity(sourcing_result)
             
@@ -221,6 +222,7 @@ Focus on what's missing or could be enhanced."""
             for fallback_model in fallback_models:
                 try:
                     logger.info(f"Trying fallback model: {fallback_model}")
+                    self.current_model = fallback_model
                     fallback_llm = self._create_llm_instance(fallback_model)
                     
                     synthesis_response = fallback_llm.invoke([HumanMessage(content=synthesis_prompt)])

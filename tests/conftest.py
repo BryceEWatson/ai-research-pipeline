@@ -27,7 +27,7 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    # core.config reads .env and model_config.yaml relative to the working directory.
+    # core.config reads .env relative to the working directory.
     os.chdir(PROJECT_ROOT)
     os.environ["CHROMA_DB_PATH"] = tempfile.mkdtemp(prefix="chroma-test-")
     if not config.getoption("--run-integration"):

@@ -101,7 +101,7 @@ The system uses Pydantic settings with environment variable support:
 - **Chunk size**: 1500 tokens (configurable via `CHUNK_SIZE`)
 - **Chunk overlap**: 150 tokens (10% of chunk size)
 - **Retrieval**: Top-15 documents by default (`RETRIEVAL_K=15`)
-- **Retrieval filter**: documents need `eval_score` above 0.35 (`MIN_EVAL_SCORE`); `eval_score` is a fixed value per source type, not a measured quality
+- **Retrieval filter**: documents need `eval_score` above 0.35 (`MIN_EVAL_SCORE`); `eval_score` is set when a document is added (constants for Perplexity results), not a measured quality
 
 ## Development Workflow
 
@@ -128,7 +128,7 @@ The system uses Pydantic settings with environment variable support:
 - **Sourcing Agent**: Gathers from local knowledge base + Perplexity Sonar API
 - **Research Agent**: Synthesizes sources with conflict detection and mixed citations
 - **Citations**: [Local-1], [Local-2] for local sources; [Sonar-1] for live sources
-- **Confidence Scoring**: formula over source count, per-source-type eval_score, answer length and a conflict penalty (not the model's own rating)
+- **Confidence Scoring**: formula over source count, sources' eval_score, answer length and a conflict penalty (not the model's own rating)
 
 ### Environment Variables
 

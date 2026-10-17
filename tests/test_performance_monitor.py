@@ -56,3 +56,38 @@ def test_seed_agent_calls_are_logged(tmp_path, monkeypatch):
     assert [m.component for m in monitor.metrics] == ["seed_agent"]
     assert monitor.metrics[0].model_used == agent.current_model
     assert (tmp_path / "m.jsonl").exists()
+
+
+def test_fallback_success_is_logged_under_the_fallback_model(tmp_path, monkeypatch):
+    monitor = PerformanceMonitor(str(tmp_path / "m.jsonl"))
+    monkeypatch.setattr(performance_monitor, "_performance_monitor_instance", monitor)
+    calls = []
+
+    def make_llm(model_name):
+        def invoke(messages):
+            calls.append(model_name)
+            if len(calls) == 1:
+                raise RuntimeError("primary model down")
+            return SimpleNamespace(content="not json")
+        return SimpleNamespace(invoke=invoke)
+
+    agent = SeedAgent()
+    monkeypatch.setattr(agent, "_create_llm_instance", make_llm)
+
+    agent.decompose_query("What is RAG?")
+
+    assert len(calls) == 2
+    assert monitor.metrics[-1].model_used == calls[1]
+    assert monitor.metrics[-1].success is True
+
+
+def test_research_with_no_sources_logs_nothing(tmp_path, monkeypatch):
+    from agents.research_agent import ResearchAgent
+
+    monitor = PerformanceMonitor(str(tmp_path / "m.jsonl"))
+    monkeypatch.setattr(performance_monitor, "_performance_monitor_instance", monitor)
+
+    result = ResearchAgent().synthesize_research("What is RAG?", SimpleNamespace(documents=[]))
+
+    assert result.total_sources == 0
+    assert monitor.metrics == []

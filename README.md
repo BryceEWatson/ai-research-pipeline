@@ -8,7 +8,7 @@ It's a personal prototype I built in May 2025, not a maintained product. If you'
 
 ## How it works
 
-1. **Seed agent** (`agents/seed_agent.py`) scores the question's complexity with a keyword heuristic (length, comparison words, recency words) to pick a model, then asks that model to break the question into two to five sub-queries, each tagged to search the local store, the web or both.
+1. **Seed agent** (`agents/seed_agent.py`) scores the question's complexity with a rough heuristic (over 10 words, plus substring matches on words like "and", "or", "compare", "latest", "new") to pick a model, then asks that model to break the question into two to five sub-queries, each tagged to search the local store, the web or both.
 2. **Sourcing agent** (`agents/sourcing_agent.py`) runs each sub-query against the local knowledge base and, when `PERPLEXITY_API_KEY` is set, against Perplexity's Sonar API.
 3. **Research agent** (`agents/research_agent.py`) picks a model from the number and mix of sources, writes the answer with citations like `[Local-1]` and `[Sonar-1]`, asks the model to list conflicts between sources, and adds a self-critique and a confidence score.
 
@@ -30,7 +30,7 @@ When a model call fails, the seed and research agents retry down a fallback chai
 
 ### Answer scoring
 
-The research agent's confidence score is a formula, not the model's own rating: a base of 0.5 plus points for source count, the sources' `eval_score` (a fixed value per source type), and answer length, minus a penalty per detected conflict. `core/quality_scoring.py` then averages that with citation counts, the share of sources the answer cites and how many of the question's words it covers. With `VECTARA_API_KEY` set it adds Vectara's factual consistency score as one more factor, so scores with and without Vectara aren't directly comparable. These are heuristics, not an evaluation: I haven't measured how well they track answer quality.
+The research agent's confidence score is a formula, not the model's own rating: a base of 0.5 plus points for source count, the sources' `eval_score` (a number set when a document is added, or a constant for Perplexity results, then nudged by source type and length), and answer length, minus a penalty per detected conflict. `core/quality_scoring.py` then averages that with citation counts, the share of sources the answer cites and how many of the question's words it covers. With `VECTARA_API_KEY` set it adds Vectara's factual consistency score as one more factor, so scores with and without Vectara aren't directly comparable. These are heuristics, not an evaluation: I haven't measured how well they track answer quality.
 
 `core/performance_monitor.py` logs each seed and research agent call (model, latency, success) to `performance_metrics.jsonl`, and `python app/cli.py performance` summarizes it.
 
@@ -72,7 +72,7 @@ pytest                       # offline tests: no API keys, no API calls
 pytest --run-integration     # adds end-to-end tests against OpenAI
 ```
 
-The offline tests cover model routing, answer scoring, performance logging, chunking, the vector store wrapper and the CLI commands that don't call a model. They use a placeholder key and a throwaway vector store. The integration tests in `tests/test_integration.py` need a real `OPENAI_API_KEY`, load the sample documents if the store is empty and spend API credit. CI runs the offline tests plus a flake8 check for syntax errors and undefined names on pull requests and pushes to master.
+The offline tests cover model routing, answer scoring, performance logging, chunking, the vector store wrapper and the CLI commands that don't call a model. They use a placeholder key and a throwaway vector store. The integration tests in `tests/test_integration.py` need a real `OPENAI_API_KEY`, load the sample documents into a throwaway vector store and spend API credit. CI runs the offline tests plus a flake8 check for syntax errors and undefined names on pull requests and pushes to master.
 
 ## Project layout
 
