@@ -1,7 +1,8 @@
 """End-to-end checks against the live OpenAI (and optionally Perplexity) APIs.
 
 Skipped unless pytest runs with ``--run-integration`` and a real
-OPENAI_API_KEY is available in the environment or ``.env``.
+OPENAI_API_KEY is available in the environment or ``.env``. The sample
+documents are loaded into a throwaway vector store.
 """
 
 import subprocess
@@ -19,13 +20,13 @@ def pipeline():
     from core.rag_pipeline import get_rag_pipeline
     from data.sample_documents import get_sample_documents
 
+    # conftest points CHROMA_DB_PATH at an empty temp directory, so seed it.
     rag = get_rag_pipeline()
-    if rag.get_knowledge_base_stats()["total_documents"] == 0:
-        for doc in get_sample_documents():
-            rag.add_document(
-                text=doc["content"], title=doc["title"],
-                source_url=doc["source_url"], eval_score=doc["eval_score"],
-            )
+    for doc in get_sample_documents():
+        rag.add_document(
+            text=doc["content"], title=doc["title"],
+            source_url=doc["source_url"], eval_score=doc["eval_score"],
+        )
     return rag
 
 

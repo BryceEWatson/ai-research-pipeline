@@ -50,7 +50,7 @@ def test_large_context_overrides_task_type():
     assert selector.select_model_for_task("seed", context_size=100_000) == selector.config.simple_reasoning
 
 
-def test_fallback_chains_never_include_the_primary_model():
+def test_fallback_chain_mapping():
     config = ModelConfig(
         complex_reasoning="big", simple_reasoning="small", alternative_llm="alt",
         high_context_fallback="long", live_research="sonar",
@@ -60,6 +60,13 @@ def test_fallback_chains_never_include_the_primary_model():
     assert selector.get_fallback_chain("small") == ["big", "alt"]
     assert selector.get_fallback_chain("sonar") == ["sonar-reasoning-pro", "big"]
     assert selector.get_fallback_chain("something-else") == ["small"]
+
+
+def test_configured_models_never_fall_back_to_themselves():
+    selector = make_selector()
+    config = selector.config
+    for primary in (config.complex_reasoning, config.simple_reasoning, config.alternative_llm, config.live_research):
+        assert primary not in selector.get_fallback_chain(primary)
 
 
 def test_record_performance_tracks_success_rate_and_latency():

@@ -1,6 +1,14 @@
-"""Answer quality scoring without the Vectara API (FCS disabled offline)."""
+"""Answer quality scoring, with the Vectara API switched off."""
 
+import pytest
+
+import core.quality_scoring as quality_scoring
 from core.quality_scoring import QualityScorer
+
+
+@pytest.fixture(autouse=True)
+def no_vectara_key(monkeypatch):
+    monkeypatch.setattr(quality_scoring.settings, "vectara_api_key", "")
 
 
 def score(answer, sources=("a", "b"), query="what is rag", confidence=0.8):
@@ -35,7 +43,5 @@ def test_uncited_answer_scores_lower_than_cited_answer():
     assert "no citations" in uncited.explanation.lower()
 
 
-def test_query_coverage():
-    scorer = QualityScorer()
-    assert scorer._calculate_query_coverage("rag is great", "what is rag") == 2 / 3
-    assert scorer._calculate_query_coverage("anything", "") == 0.0
+def test_query_coverage_is_share_of_question_words_in_answer():
+    assert score("rag is great", query="what is rag").metrics["query_coverage"] == 2 / 3

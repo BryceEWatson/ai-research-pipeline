@@ -10,7 +10,7 @@ This is a multi-agent retrieval-augmented research assistant that combines cloud
 - **Sourcing Agent**: Calls research APIs, filters and evaluates content
 - **Research Agent**: Retrieval, synthesis, and conflict detection
 
-The project has completed **Phase 3** (Quality & Evaluation with Model Selection) with intelligent model routing, performance monitoring, and quality assurance systems fully implemented.
+Phases 1 and 2 are built. Phase 3 is partly built: model routing with fallbacks, per-call performance logging and heuristic answer scoring (optional Vectara FCS) exist, but there's no evaluation harness that measures answer quality.
 
 ## Essential Commands
 
@@ -50,7 +50,7 @@ python app/cli.py report --detailed  # Show detailed document information
 python app/cli.py report --export kb_report.json  # Export report to JSON
 python app/cli.py reset              # Reset knowledge base (with confirmation)
 
-# Model management and monitoring (NEW)
+# Model management and monitoring
 python app/cli.py models                                    # View model configuration
 python app/cli.py performance                              # System performance metrics
 python app/cli.py performance --component seed_agent       # Component-specific metrics
@@ -61,10 +61,10 @@ python app/cli.py select-model research --complexity 4     # Test model selectio
 ### Testing
 ```bash
 pytest                      # offline suite (placeholder key, temp vector store, no API calls)
-pytest --run-integration    # also runs tests/test_integration.py against real OpenAI/Perplexity
+pytest --run-integration    # also runs tests/test_integration.py against real OpenAI (and Perplexity if PERPLEXITY_API_KEY is set)
 flake8 . --select=E9,F63,F7,F82   # the lint check CI runs
 ```
-CI (`.github/workflows/ci.yml`) runs the offline suite and that flake8 check on every push and PR.
+CI (`.github/workflows/ci.yml`) runs the offline suite and that flake8 check on pull requests and pushes to master.
 
 ## Architecture
 
@@ -82,7 +82,7 @@ CI (`.github/workflows/ci.yml`) runs the offline suite and that flake8 check on 
   - `research_agent.py`: Synthesis, conflict detection, and citations
 
 - **`app/`**: CLI and future web interfaces
-  - `cli.py`: Rich CLI with Phase 2 enhanced display
+  - `cli.py`: Click + Rich CLI
 
 - **`tests/`**: pytest suite (`conftest.py` sets offline defaults and the `integration` marker)
 - **`scripts/`**: environment check and sample data loader
@@ -101,14 +101,14 @@ The system uses Pydantic settings with environment variable support:
 - **Chunk size**: 1500 tokens (configurable via `CHUNK_SIZE`)
 - **Chunk overlap**: 150 tokens (10% of chunk size)
 - **Retrieval**: Top-15 documents by default (`RETRIEVAL_K=15`)
-- **Quality threshold**: Minimum eval score 0.35 (`MIN_EVAL_SCORE=0.35`)
+- **Retrieval filter**: documents need `eval_score` above 0.35 (`MIN_EVAL_SCORE`); `eval_score` is a fixed value per source type, not a measured quality
 
 ## Development Workflow
 
 ### Phase Roadmap
 1. **Phase 1**: CLI MVP with basic RAG ✅
 2. **Phase 2**: Multi-agent orchestration (Seed → Sourcing → Research) ✅
-3. **Phase 3** (Current): Quality assurance with Vectara FCS and evaluation harness
+3. **Phase 3** (partial): heuristic scoring and Vectara FCS built; evaluation harness not built
 4. **Phase 4**: Performance improvements and caching
 5. **Phase 5**: Web UI and deployment preparation
 
@@ -128,7 +128,7 @@ The system uses Pydantic settings with environment variable support:
 - **Sourcing Agent**: Gathers from local knowledge base + Perplexity Sonar API
 - **Research Agent**: Synthesizes sources with conflict detection and mixed citations
 - **Citations**: [Local-1], [Local-2] for local sources; [Sonar-1] for live sources
-- **Confidence Scoring**: AI-driven assessment based on sources, quality, and conflicts
+- **Confidence Scoring**: formula over source count, per-source-type eval_score, answer length and a conflict penalty (not the model's own rating)
 
 ### Environment Variables
 
@@ -144,7 +144,7 @@ LANGSMITH_API_KEY=your_langsmith_api_key_here          # Advanced monitoring
 
 # Core configuration
 CHROMA_DB_PATH=./data/chroma_db
-LLM_MODEL=gpt-4o                                       # Default fallback model
+LLM_MODEL=gpt-4o                                       # Shown by `stats`; routing uses model_config.yaml
 EMBEDDING_MODEL=text-embedding-3-small                 # Vector embeddings
 CHUNK_SIZE=1500
 RETRIEVAL_K=15

@@ -2,7 +2,7 @@
 
 import logging
 from typing import List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -90,7 +90,7 @@ class AdaptiveChunker:
                 "total_chunks": len(chunks),
                 "chunk_tokens": self._count_tokens(chunk),
                 "chunk_chars": len(chunk),
-                "created_at": datetime.utcnow().isoformat(),
+                "created_at": datetime.now(timezone.utc).isoformat(),
                 "eval_score": base_metadata.get("eval_score", 0.5),  # Default eval score
             })
             
@@ -168,7 +168,7 @@ class AdaptiveChunker:
         metadata = {
             "source_url": source_url,
             "title": title,
-            "date": date or datetime.utcnow().strftime("%Y-%m-%d"),
+            "date": date or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
             "eval_score": eval_score,
             # Note: conflicts and aligns_with removed for Chroma compatibility
             # They will be handled separately in future phases
