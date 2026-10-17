@@ -264,7 +264,7 @@ Model Selection Strategy:
 @cli.command()
 @click.option('--component', type=str, help='Filter by component (seed_agent, sourcing_agent, research_agent)')
 @click.option('--export', type=click.Path(), help='Export metrics to JSON file')
-def performance():
+def performance(component: Optional[str], export: Optional[str]):
     """Show model performance metrics and statistics."""
     try:
         monitor = get_performance_monitor()

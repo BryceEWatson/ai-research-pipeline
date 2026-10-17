@@ -33,7 +33,7 @@ def setup_sample_data():
                 eval_score=doc['eval_score']
             )
             
-            print(f"  ✓ Added with {len(ids)} chunks")
+            print(f"  Added with {len(ids)} chunks")
         
         # Show final stats
         stats = rag_pipeline.get_knowledge_base_stats()

@@ -60,21 +60,11 @@ python app/cli.py select-model research --complexity 4     # Test model selectio
 
 ### Testing
 ```bash
-# Quick smoke tests for Phase 2 multi-agent system (fast validation)
-python test_smoke.py
-
-# Comprehensive end-to-end tests for Phase 2 (full user workflow validation)
-python test_phase2_e2e.py
-
-# Basic functionality tests (no API keys required)
-python test_functionality.py
-
-# Minimal pipeline test
-python test_minimal.py
-
-# Core pipeline test
-python tests/test_basic_pipeline.py
+pytest                      # offline suite (placeholder key, temp vector store, no API calls)
+pytest --run-integration    # also runs tests/test_integration.py against real OpenAI/Perplexity
+flake8 . --select=E9,F63,F7,F82   # the lint check CI runs
 ```
+CI (`.github/workflows/ci.yml`) runs the offline suite and that flake8 check on every push and PR.
 
 ## Architecture
 
@@ -94,8 +84,8 @@ python tests/test_basic_pipeline.py
 - **`app/`**: CLI and future web interfaces
   - `cli.py`: Rich CLI with Phase 2 enhanced display
 
-- **`prompts/`**: Agent prompt templates  
-- **`eval/`**: Evaluation harness
+- **`tests/`**: pytest suite (`conftest.py` sets offline defaults and the `integration` marker)
+- **`scripts/`**: environment check and sample data loader
 - **`data/`**: Local data storage and sample documents
 
 ### Configuration
@@ -168,16 +158,17 @@ MIN_EVAL_SCORE=0.35                                    # Minimum evaluation scor
 ### Model Configuration
 
 Models are configured in `model_config.yaml` with intelligent selection:
-- **Seed Agent**: o1-mini for fast query decomposition
-- **Research Agent**: o1 for complex synthesis and conflict detection  
+- **Seed Agent**: gpt-4o-mini up to complexity 3, gpt-4o above
+- **Research Agent**: gpt-4o-mini (complexity 1-2), gpt-4 (3), gpt-4o (4-5)
 - **Sourcing Agent**: sonar-pro for live research APIs
-- **Fallback chains**: Automatic model switching on failures
-- **Context awareness**: High-context models for large documents (>100k tokens)
+- **Fallback chains**: seed and research agents retry down a chain on failure
+- **Context awareness**: gpt-4-turbo when a caller passes context_size > 100k (only `select-model` does today)
+- **Reranker**: configured and displayed, not called anywhere
 
 ## Important Notes
 
 - This is primarily a Python project using LangChain, Chroma DB, and OpenAI APIs
-- No formal test runner configured - uses custom test scripts
+- Tests use pytest; see Testing above
 - Linting/formatting tools available: black, flake8 (run `black .` and `flake8` for code quality)
 - Vector embeddings are persisted locally in `./data/chroma_db/`
 - The system is designed to evolve from local CLI to cloud-deployed web application

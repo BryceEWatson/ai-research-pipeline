@@ -4,8 +4,8 @@ import logging
 from typing import List, Dict, Any, Optional
 
 from langchain_openai import OpenAI, ChatOpenAI
-from langchain.schema import Document
-from langchain.prompts import PromptTemplate
+from langchain_core.documents import Document
+from langchain_core.prompts import PromptTemplate
 
 from .config import settings, model_selector
 from .vector_store import get_vector_store

@@ -27,7 +27,7 @@ class VectaraFCS:
         """Initialize Vectara FCS client."""
         self.api_key = settings.vectara_api_key
         self.base_url = "https://api.vectara.io"
-        self.enabled = settings.enable_factual_consistency_score and self.api_key is not None
+        self.enabled = settings.enable_factual_consistency_score and bool(self.api_key)
         
         if not self.enabled:
             logger.info("Vectara FCS disabled (no API key or setting disabled)")

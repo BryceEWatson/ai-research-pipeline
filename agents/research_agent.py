@@ -6,8 +6,8 @@ from typing import List, Dict, Any, Optional, Tuple
 from dataclasses import dataclass
 
 from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
-from langchain.schema import HumanMessage
+from langchain_core.prompts import PromptTemplate
+from langchain_core.messages import HumanMessage
 
 from core.config import settings, model_selector
 from agents.sourcing_agent import SourcingResult, SourcedDocument

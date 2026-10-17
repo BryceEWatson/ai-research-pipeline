@@ -5,8 +5,8 @@ from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
 
 from langchain_openai import ChatOpenAI
-from langchain.prompts import PromptTemplate
-from langchain.schema import BaseMessage, HumanMessage
+from langchain_core.prompts import PromptTemplate
+from langchain_core.messages import BaseMessage, HumanMessage
 
 from core.config import settings, model_selector
 import time

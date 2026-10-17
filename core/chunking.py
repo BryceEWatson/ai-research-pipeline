@@ -4,8 +4,8 @@ import logging
 from typing import List, Dict, Any
 from datetime import datetime
 
-from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 try:
     import tiktoken

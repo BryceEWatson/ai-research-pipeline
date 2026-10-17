@@ -1,0 +1,41 @@
+"""Performance metrics: recording, persistence to JSONL and aggregation."""
+
+import json
+
+from core.performance_monitor import PerformanceMonitor
+
+
+def record(monitor, model, seconds, success=True, component="seed_agent"):
+    monitor.record_operation(
+        component=component, operation="decompose_query", model_used=model,
+        execution_time=seconds, success=success,
+    )
+
+
+def test_metrics_persist_and_reload(tmp_path):
+    log = tmp_path / "metrics.jsonl"
+    record(PerformanceMonitor(str(log)), "small", 0.5)
+    assert len(log.read_text().splitlines()) == 1
+    assert len(PerformanceMonitor(str(log)).metrics) == 1
+
+
+def test_system_metrics_aggregate(tmp_path):
+    monitor = PerformanceMonitor(str(tmp_path / "m.jsonl"))
+    record(monitor, "small", 1.0)
+    record(monitor, "small", 3.0, success=False)
+    record(monitor, "big", 5.0)
+    metrics = monitor.get_system_metrics()
+    assert metrics.total_requests == 3
+    assert metrics.successful_requests == 2
+    assert metrics.most_used_model == "small"
+    assert metrics.average_latency == 3.0
+
+
+def test_model_comparison_and_export(tmp_path):
+    monitor = PerformanceMonitor(str(tmp_path / "m.jsonl"))
+    record(monitor, "small", 1.0)
+    comparison = monitor.get_model_performance_comparison()
+    assert comparison["small"]["usage_count"] == 1
+    out = tmp_path / "export.json"
+    assert monitor.export_metrics(str(out), format="json")
+    assert json.loads(out.read_text())

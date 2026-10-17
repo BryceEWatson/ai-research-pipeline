@@ -86,7 +86,7 @@ class TestRAGPipeline:
         pipeline = get_rag_pipeline()
         
         # Create mock documents
-        from langchain.schema import Document
+        from langchain_core.documents import Document
         docs = [
             Document(
                 page_content="Test content 1",
